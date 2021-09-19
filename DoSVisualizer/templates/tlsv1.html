@@ -1,0 +1,136 @@
+{% extends "layout.html" %}
+
+{% block all_active %}
+	style="background-color: green; color: white;"
+{% endblock all_active %}
+
+{% block content %}
+   
+	<h2>TLSV1 Protocol</h2>
+	<div class="chartWrapper">
+        <div class="chartAreaWrapper">
+			<canvas id="chart" style="border: 1px solid black; margin: 15px 0px;" width="{{ canvas_width }}" height="500" ></canvas>         
+		</div>
+    </div>
+
+	<!-- Create a table that contains data only for DNS protocol  -->
+	<table class="table table-striped">
+	<thead>
+	  <tr>
+	    <th>Fnum</th>
+	    <th>Time</th>
+	    <th>Source</th>	        
+	    <th>Destination</th>
+	    <th>Protocol</th>
+	    <th>Length</th>
+	    <th>Info</th>	        
+	  </tr>
+	</thead>
+
+	<tbody>
+			{% for row in range(tlsv1freq) %}	    	
+	      <tr>
+	        <td>{{ tlsv1.Fnum.iloc[row] }}</td>
+	        <td>{{ (tlsv1.Time.iloc[row]).round(6) }}</td>
+	        <td>{{ tlsv1.Source.iloc[row] }}</td>
+	        <td>{{ tlsv1.Destination.iloc[row] }}</td>
+	        <td>{{ tlsv1.Protocol.iloc[row] }}</td>
+	        <td>{{ tlsv1.Length.iloc[row] }}</td>
+	        <td>{{ tlsv1.Info.iloc[row] }}</td>
+	      </tr>
+		{% endfor %}	      
+
+	</tbody>
+	</table>
+	
+
+	<canvas style="border: 1px solid black; margin: 30px 0px;" id="chart"></canvas>
+
+    <script type="text/javascript">
+    	// get chart canvas
+		var canvas = document.getElementById("chart").getContext("2d"); 
+		
+		//canvas.width = window.innerWidth;
+		//canvas.height = window.innerHeight;
+
+		// Global parameters: do not resize the chart canvas 
+		Chart.defaults.global.responsive = false;
+		
+		//Function to get random color for each bar using HEX Value #rrggbb
+		function getRandomColor() 
+		{
+		    var letters = '0123456789ABCDEF'.split('');
+		    var color = '#';
+		    for (var i = 0; i < 6; i++ ) 
+		    {
+		        color += letters[Math.floor(Math.random() * 16)];
+		    }
+		    return color;
+		}		
+				
+		var chart = new Chart(canvas, 
+		{
+			type: 'horizontalBar',
+
+			options: 
+			{
+				title: {display: true, text: 'TLSv1 PROTOCOL', fontSize: 20, fontColor: 'green'},
+		      	maintainAspectRatio: true,
+		      	legend: {display: true, position:'top'},
+		      	scales: 
+		      	{
+		        	xAxes: 
+		        	[
+		          		{
+		            		scaleLabel: 
+		            		{
+				              display: true,
+				              labelString: 'Length in byte',
+				              fontSize: 16
+		            		},
+		            		ticks: {min:0}		            		
+		          		}
+		        	],
+
+		        	yAxes: 
+		        	[
+		          		{
+		            		scaleLabel: 
+		            		{
+				              display: true,
+				              labelString: 'Source IP Address',
+				              fontSize: 16
+		            		}		            		
+		          		}
+		        	]
+		      	}
+		    },
+			
+		  	data: 
+		  	{
+		    	labels: 
+		    	[
+		    		{% for n in range(tlsv1freq) %}    
+		    			"{{ tlsv1.Source.iloc[n] }}", 
+		    		{% endfor %}
+		    	],
+
+		    	datasets: 
+		    	[
+		      		{
+		      			label: "TLSv1",
+		        		data: 
+		        		[
+		        			{% for n in range(tlsv1freq) %}    
+		    					"{{ tlsv1.Length.iloc[n] }}", 
+		        			{% endfor %}
+		        		],
+    					backgroundColor: getRandomColor() 					
+		      		}
+		    	]
+		  	}
+		});
+	</script>
+    
+{% endblock content %}
+	

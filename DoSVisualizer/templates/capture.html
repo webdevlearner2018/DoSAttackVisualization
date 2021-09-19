@@ -1,0 +1,61 @@
+
+{% extends "layout.html" %}
+
+	
+{% block capture_active %}
+	style="background-color: green; color: white;"
+{% endblock capture_active %}
+
+{% block content %}
+			
+	<h2>Capture Live Network Traffic</h2>
+	
+	<div id="messageToUser"></div> <!--A message will be displayed in this div -->
+
+	<div class="form-capture">	
+		<form action="/getinput" name="captureForm" method="POST" onsubmit="confirmation()" enctype="multipart/form-data">
+			<div class="form-group">
+	  		<h4>Choose a number of packets or duration for this capture:</h4>
+		  		<input type="radio" id="packets" name="useroption" value="packets" required>
+	  			<label for="packets">Number of packets</label><br>
+	  			<input type="radio" id="duration" name="useroption" value="duration" required>
+	  			<label for="duration">Duration (seconds)</label><br>
+	  		</div>
+		    <div class="form-group">
+		      <label for="userinput">Enter your value: </label>
+		      <input type="number" class="form-control" placeholder="Enter an integer number" name="userinput" min="1" step="1" 
+		      		required />
+		    </div> 
+		    	<input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+		    <button type="submit" class="btn btn-primary" style="width: 100%">Submit and Capture</button>
+	  	</form>
+	</div>	
+
+	<script>
+		//Function to display a message after the "Submit and Capture" button was clicked
+		function confirmation() 
+		{
+		  var x = document.forms["captureForm"]["useroption"].value;
+		  var y = document.forms["captureForm"]["userinput"].value;
+		  var txtPattern = /[a-zA-Z]/g;
+		  var findLetter = y.match(txtPattern);
+		  var message;
+		  if (x !== "" && findLetter) 
+		  {		  	
+		  	alert("Only digits accepted! Please enter your input again.");
+		  	document.getElementById("messageToUser").style.display = "none";
+		  }
+		  else if (x !== "" && y !=="" && !findLetter)
+		  {
+		  	message = "Network Traffic has been capturing. Please wait until this message is gone.";
+		  	document.getElementById("messageToUser").innerHTML = message;		  
+		  }
+		  else
+		  {
+		  	message = "Failed to capture!"
+		  }		  
+		}
+	</script>
+
+{% endblock content %}	
+	

@@ -1,0 +1,126 @@
+{% extends "layout.html" %}
+
+{% block visualization_active %}
+	style="background-color: green; color: white;"
+{% endblock visualization_active %}
+
+{% block content %}
+   
+	<h2>Destination IP Addresses</h2>	  
+
+	  <table class="table table-striped">
+	    <thead>
+	      <tr>
+	        <th>Destination</th>
+	        <th>Frequency</th>	             
+	      </tr>
+	    </thead>
+
+	    <tbody>
+	   		{% for row in range(dstrows) %}	    
+		      <tr>
+		        <td>{{ destination.index[row] }}</td>
+		        <td>{{ destination.iloc[row] }}</td>		        
+		      </tr>
+	    	{% endfor %}	      
+
+	    </tbody>
+	  </table>
+	
+	<canvas style="border: 1px solid black; margin: 30px 0px;" id="chart"></canvas>
+
+    <script type="text/javascript">
+    	// get chart canvas
+		var canvas = document.getElementById("chart").getContext("2d"); 
+		
+		canvas.width = window.innerWidth;
+		canvas.height = window.innerHeight;
+		
+		//Function to get random color for each bar 
+		function getRandomColor() 
+		{
+		    var letters = '0123456789ABCDEF'.split('');
+		    var color = '#';
+		    for (var i = 0; i < 6; i++ ) 
+		    {
+		        color += letters[Math.floor(Math.random() * 16)];
+		    }
+		    return color;
+		}
+
+		//get the number of random colors and store them in the array		
+		var colors = [];		
+		for (var i = 0; i < {{dstrows}}; i++ )
+		{
+			colors.push(getRandomColor());			
+		}
+
+		var chart = new Chart(canvas, 
+		{
+			type: 'bar',
+
+			options: 
+			{
+				title: {display: true, text: 'DESTINATION AND FREQUENCY', fontSize: 20, fontColor: 'green'},
+		      	maintainAspectRatio: true,
+		      	legend: {display: false, position:'top'},
+		      	responsive: true,
+		      	scales: 
+		      	{
+		        	xAxes: 
+		        	[
+		          		{
+		            		scaleLabel: 
+		            		{
+				              display: true,
+				              labelString: 'Destination IP Address', //x axis label
+				              fontSize: 16
+		            		}
+
+		          		}
+		        	],
+
+		        	yAxes: 
+		        	[
+		          		{
+		            		scaleLabel: 
+		            		{
+				              display: true,
+				              labelString: 'Frequency', //y axis label
+				              fontSize: 16
+		            		},
+		            		ticks: {min:0}		            		
+		          		}
+		        	]
+		      	}
+		    },
+			
+		  	data: 
+		  	{
+		    	labels: //label for an axis x or y
+		    	[
+		    		{% for n in range(dstrows) %}    
+		    			"{{ destination.index[n] }}", 
+		    		{% endfor %}
+		    	],
+
+		    	datasets: 
+		    	[
+		      		{
+		      			label: "", //label for legend
+		        		data: //data for other axis
+		        		[
+		        			{% for n in range(dstrows) %}    
+		    					"{{ destination.iloc[n] }}", 
+		        			{% endfor %}
+		        		],
+		        		//backgroundColor for each bar
+    					backgroundColor: colors    					
+		      		}
+		    	]		    	
+		  	}
+		});
+	</script>
+    
+{% endblock content %}
+	

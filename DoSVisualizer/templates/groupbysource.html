@@ -1,0 +1,136 @@
+{% extends "layout.html" %}
+
+{% block visualization_active %}
+	style="background-color: green; color: white;"
+{% endblock visualization_active %}
+
+{% block content %}
+<h2>Group by Source</h2>
+	<div class="tableWrapper">
+		<div class="tableAreaWrapper">
+
+			<table class="table table-striped">
+			<thead>
+			  <tr>
+			    <th>Protocol | Source</th>
+			    
+			    {% for col in range(numofcolumns) %}
+			    <th>{{ groupbySource.columns[col] }}</th>
+			    {% endfor %}	             
+			  </tr>
+			</thead>
+
+			<tbody>
+					{% for row in range(numofrows) %}	    
+			      <tr>
+			        <td>{{ groupbySource.index[row] }}</td>
+			        {% for col in range(numofcolumns) %}
+			        	<td>{{ (groupbySource.iloc[row,col]).astype('int64') }}</td>
+			        {% endfor %}		        
+			      </tr>
+				{% endfor %}	      
+
+			</tbody>
+			</table>
+		</div>
+	</div>
+	
+	<!-- create a canvas for displaying the bar chart -->
+	<div class="chartWrapper">
+        <div class="chartAreaWrapper">
+			<canvas id="chart" width="{{ canvas_width }}" height="500" ></canvas>    
+		</div>
+    </div>
+
+    <script type="text/javascript">
+    	// get canvas by ID and set the width and height for the canvas
+		var canvas = document.getElementById("chart").getContext("2d"); 		
+	
+		//Function to get random color for each bar 
+		function getRandomColor() 
+		{
+		    var letters = '0123456789ABCDEF'.split('');
+		    var color = '#';
+		    for (var i = 0; i < 6; i++ ) 
+		    {
+		        color += letters[Math.floor(Math.random() * 16)];
+		    }
+		    return color;
+		}
+				
+		
+		var chart = new Chart(canvas, 
+		{
+			type: 'bar',
+
+			options: 
+			{
+				title: {display: true, text: 'GROUP BY SOURCE', fontSize: 20, fontColor: 'green'},
+		      	maintainAspectRatio: true,
+		      	legend: {display: false, position:'right'},
+		      	responsive: false,
+		      	scales: 
+		      	{
+		        	xAxes: 
+		        	[
+		          		{
+		            		scaleLabel: 
+		            		{
+				              display: true,
+				              labelString: 'Protocol',
+				              fontSize: 16
+		            		},
+		            		stacked: true		            		
+		          		}
+		        	],
+
+		        	yAxes: 
+		        	[
+		          		{
+		            		scaleLabel: 
+		            		{
+				              display: true,
+				              labelString: 'Frequency',
+				              fontSize: 16
+		            		},
+		            		stacked: true,
+		            		ticks: {min:0}		            		
+		          		}
+		        	]
+		      	}
+		    },
+			
+		  	data: 
+		  	{
+		    	labels: 
+		    	[
+		    		{% for row in range(numofrows) %}    
+		    			"{{ groupbySource.index[row] }}", 
+		    		{% endfor %}
+		    	],
+
+		    	datasets: 
+		    	[
+		    	{% for col in range(numofcolumns) %}
+		      		{
+		      			label: "{{ groupbySource.columns[col] }}",
+		      			backgroundColor: getRandomColor(),
+		      			stack: "Stack {{col}}",    		
+		        		data: 
+		        		[
+		        			{% for row in range(numofrows) %}
+			        			
+			    					"{{ groupbySource.iloc[row,col] }}", 
+			        			
+			        		{% endfor %}
+		        		]    								
+		      		},
+		      	{% endfor %}	
+		    	]
+		  	}		  	
+
+		});
+	</script>
+    
+{% endblock content %}
+	

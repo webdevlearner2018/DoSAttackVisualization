@@ -1,0 +1,130 @@
+{% extends "layout.html" %}
+
+{% block visualization_active %}
+	style="background-color: green; color: white;"
+{% endblock visualization_active %}
+
+{% block content %}   
+	<h2>Group by Protocol</h2>
+	<div class="tableWrapper">
+		<div class="tableAreaWrapper">
+			<!-- Create a table and display the data in it -->
+			<table class="table table-striped">
+				<thead> 
+				  <tr>
+				    <th>Source | Protocol</th>
+				<!-- Print Protocols as column labels  -->    
+				    {% for col in range(numofcolumns) %}
+				    <th>{{ groupbyProtocol.columns[col] }}</th>
+				    {% endfor %}	             
+				  </tr>
+				</thead>
+				<tbody>
+					{% for row in range(numofrows) %}	    
+				      <tr>
+				      	<!-- Print each Source IP address as a row label -->
+				        <td>{{ groupbyProtocol.index[row] }}</td>
+				        <!-- Print the frequency of all Protocols for each Source IP address -->
+				        {% for col in range(numofcolumns) %}
+				        	<td>{{ (groupbyProtocol.iloc[row,col]).astype('int64') }}</td>
+				        {% endfor %}		        
+				      </tr>
+					{% endfor %}
+				</tbody>
+			</table>
+		</div>
+	</div>
+
+	<!-- create a canvas for displaying the bar chart -->
+	<div class="chartWrapper">
+        <div class="chartAreaWrapper">
+			<canvas id="chart" width="{{ canvas_width }}" height="500" ></canvas>    
+		</div>
+    </div>	
+
+    <script type="text/javascript">	
+		//Function to get random color for each bar 
+		function getRandomColor() 
+		{
+		    var letters = '0123456789ABCDEF'.split('');
+		    var color = '#';
+		    for (var i = 0; i < 6; i++ ) 
+		    {
+		        color += letters[Math.floor(Math.random() * 16)];
+		    }
+		    return color;
+		}
+
+    	// get canvas by ID
+		var canvas = document.getElementById("chart").getContext("2d");						
+		//Create bar chart using the data passed from groupbyprotocol function and display the bar chart 
+		//inside the canvas
+		var chart = new Chart(canvas, 
+		{
+			type: 'bar',
+			options: 
+			{
+				title: {display: true, text: 'GROUP BY PROTOCOL', fontSize: 20, fontColor: 'green'},
+		      	maintainAspectRatio: true,
+		      	legend: {display: true, position:'right'},
+		      	responsive: false,
+		      	scales: 
+		      	{
+		        	xAxes: 
+		        	[
+		          		{
+		            		scaleLabel: 
+		            		{
+				              display: true,
+				              labelString: 'Source IP Address',
+				              fontSize: 16
+		            		},
+		            		stacked: true		            			            		
+		          		}
+		        	],
+
+		        	yAxes: 
+		        	[
+		          		{
+		            		scaleLabel: 
+		            		{
+				              display: true,
+				              labelString: 'Frequency',
+				              fontSize: 16
+		            		},
+		            		stacked: true,
+		            		ticks: {min:0}			            		
+		          		}
+		        	]
+		      	}
+		    },
+			
+		  	data: 
+		  	{
+		    	labels: //a list of Source IP addresses used for x axis
+		    	[ 
+		    		{% for row in range(numofrows) %}    
+		    			"{{ groupbyProtocol.index[row] }}", 
+		    		{% endfor %}
+		    	],
+		    	datasets: 
+		    	[
+		    	{% for col in range(numofcolumns) %} //loop through each Protocol as a column label
+		      		{
+		      			label: "{{ groupbyProtocol.columns[col] }}", //label name for legend
+		      			backgroundColor: getRandomColor(), //get the random color for background bar chart
+		      			stack: "Stack {{col}}", //each Protocol will be drawn as a seperate bar      		
+		        		data: //A list of frequencies for each Protocol
+		        		[
+		        			{% for row in range(numofrows) %}			        			
+			    					"{{ groupbyProtocol.iloc[row,col] }}", 			        			
+			        		{% endfor %}
+		        		]    								
+		      		},
+		      	{% endfor %}	
+		    	]
+		  	}
+		});
+	</script>    
+{% endblock content %}
+	

@@ -1,0 +1,70 @@
+
+{% extends "layout.html" %}
+
+{% block visualization_active %}
+	style="background-color: green; color: white;"
+{% endblock visualization_active %}
+
+{% block content %}
+	
+<h2>Visualization</h2>
+	<div class="alert alert-success">
+    	<p><strong>Success!</strong> The data you uploaded ready for visualizing. Select what you would like to display from the list below.</p>
+  	</div>
+	<div id="vis-options">
+		<div class="vis-volumn" style="width: 25%">
+			<h4>Groupby</h4>
+			<ul>
+				<li><a href="{{ url_for('groupbysource') }}">Groupby Source</a></li>
+		        <li><a href="{{ url_for('groupbyprotocol') }}">Groupby Protocol</a></li>
+		        <li><a href="{{ url_for('sourceport') }}">Groupby Source Port</a></li>
+		        <li><a href="{{ url_for('dstport') }}">Groupby Destination Port</a></li>
+			</ul>
+		</div>
+
+		<div class="vis-volumn" style="width: 25%">
+			<h4>Source or Destination</h4>
+			<ul>
+				<li><a href="{{ url_for('source') }}">Source</a></li>
+				<li><a href="{{ url_for('destination') }}">Destination</a></li>		        
+			</ul>
+		</div>
+		<div class="vis-volumn" style="width: 50%">
+			<h4>Protocols</h4>
+			<div class="protocol-col">
+				<ul>
+					<li><a href="{{ url_for('protocols') }}">All Protocols</a></li>
+					<li><a href="{{ url_for('tcp') }}">TCP</a></li>
+			        <li><a href="{{ url_for('udp') }}">UDP</a></li>
+			        <li><a href="{{ url_for('dns') }}">DNS</a></li>
+			        <li><a href="{{ url_for('tlsv1') }}">TLSv1</a></li>
+			        <li><a href="{{ url_for('tlsv1_2') }}">TLSv1.2</a></li>
+			        <li><a href="{{ url_for('tlsv1_3') }}">TLSv1.3</a></li>			        
+				</ul>
+			</div>
+
+			<div class="protocol-col">
+				<ul>		
+			        <li><a href="{{ url_for('http') }}">HTTP</a></li>
+			        <li><a href="{{ url_for('ssdp') }}">SSDP</a></li>
+			        <li><a href="{{ url_for('icmp') }}">ICMP</a></li>
+			        <li><a href="{{ url_for('icmpv6') }}">ICMPv6</a></li>
+			        <li><a href="{{ url_for('ocsp') }}">OCSP</a></li>
+			        <li><a href="{{ url_for('dhcpv6') }}">DHCPv6</a></li>
+			        <li><a href="{{ url_for('arp') }}">ARP</a></li>			        
+				</ul>
+			</div>
+			<div class="protocol-col">
+				<ul>					
+			        <li><a href="{{ url_for('mdns') }}">MDNS</a></li>
+			        <li><a href="{{ url_for('db_lsp_disc') }}">DB-LSP-DISC</a></li>
+			        <li><a href="{{ url_for('nbns') }}">NBNS</a></li>
+			        <li><a href="{{ url_for('browser') }}">BROWSER</a></li>
+			        <li><a href="{{ url_for('telnet') }}">TELNET</a></li>			        
+				</ul>
+			</di>
+		</div>
+	</div>
+    
+{% endblock content %}
+	

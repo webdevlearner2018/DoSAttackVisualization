@@ -1,0 +1,134 @@
+{% extends "layout.html" %}
+
+{% block visualization_active %}
+	style="background-color: green; color: white;"
+{% endblock visualization_active %}
+
+{% block content %}
+   
+  <h2>ICMP Protocol</h2>
+	<div class="chartWrapper">
+        <div class="chartAreaWrapper">
+			<canvas id="chart" style="border: 1px solid black; margin: 15px 0px;" width="{{ canvas_width }}" height="500" ></canvas>         
+		</div>
+    </div>  	  
+
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        <th>Fnum</th>
+        <th>Time</th>
+        <th>Source</th>	        
+        <th>Destination</th>
+        <th>Protocol</th>
+        <th>Length</th>
+        <th>Info</th>	        
+      </tr>
+    </thead>
+
+    <tbody>
+   		{% for row in range(frequency) %}	    	
+	      <tr>
+	        <td>{{ icmp.Fnum.iloc[row] }}</td>
+	        <td>{{ (icmp.Time.iloc[row]).round(6) }}</td>
+	        <td>{{ icmp.Source.iloc[row] }}</td>
+	        <td>{{ icmp.Destination.iloc[row] }}</td>
+	        <td>{{ icmp.Protocol.iloc[row] }}</td>
+	        <td>{{ icmp.Length.iloc[row] }}</td>
+	        <td>{{ icmp.Info.iloc[row] }}</td>
+	      </tr>
+    	{% endfor %}	      
+
+    </tbody>
+  </table>
+
+
+    <script type="text/javascript">
+    	// get chart canvas
+		var canvas = document.getElementById("chart").getContext("2d");		
+		//canvas.width = window.innerWidth;
+		//canvas.height = window.innerHeight;
+
+		// Global parameters: do not resize the chart canvas 
+		Chart.defaults.global.responsive = false;
+		
+		//Function to get random color for each bar using HEX Value #rrggbb
+		function getRandomColor() 
+		{
+		    var letters = '0123456789ABCDEF'.split('');
+		    var color = '#';
+		    for (var i = 0; i < 6; i++ ) 
+		    {
+		        color += letters[Math.floor(Math.random() * 16)];
+		    }
+		    return color;
+		}		
+						
+		var chart = new Chart(canvas, 
+		{
+			type: 'horizontalBar',
+
+			options: 
+			{
+				title: {display: true, text: 'ICMP PROTOCOL - LENGTH', fontSize: 20, fontColor: 'green'},
+		      	maintainAspectRatio: true,
+		      	legend: {display: true, position:'top'},
+		      	scales: 
+		      	{
+		        	xAxes: 
+		        	[
+		          		{
+		            		scaleLabel: 
+		            		{
+				              display: true,
+				              labelString: 'Length in byte',
+				              fontSize: 16
+		            		},
+		            		ticks: {min:0}		            		
+		          		}
+		        	],
+
+		        	yAxes: 
+		        	[
+		          		{
+		            		scaleLabel: 
+		            		{
+				              display: true,
+				              labelString: 'Source IP Address',
+				              fontSize: 16
+		            		}		            		
+		          		}
+		        	]
+		      	}
+		    },
+			
+		  	data: 
+		  	{
+		    	labels: 
+		    	[
+		    		{% for n in range(frequency) %}    
+		    			"{{ icmp.Source.iloc[n] }}"
+		    			, 
+		    		{% endfor %}
+		    	],
+
+		    	datasets: 
+		    	[
+		      		{
+		      			label: "ICMP",
+		        		data: 
+		        		[
+		        			{% for n in range(frequency) %}    
+		    					"{{ icmp.Length.iloc[n] }}", 
+		        			{% endfor %}
+		        		],
+    					backgroundColor: getRandomColor() 					
+		      		}
+		    	]
+		  	}		  	
+
+		});
+	</script>
+    
+{% endblock content %}
+	

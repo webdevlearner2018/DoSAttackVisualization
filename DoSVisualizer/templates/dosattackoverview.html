@@ -1,0 +1,525 @@
+{% extends "layout.html" %}
+
+{% block dosviz_active %}
+	style="background-color: green; color: white;"
+{% endblock dosviz_active %}
+
+{% block content %}
+     
+	<h2>DoS Attack Overview</h2>
+
+	<div class="all-protocols">
+		<!--Table of protocols and their frequency--> 			
+		<div class="table-of-protocols">
+			<table class="table table-striped">
+				<thead>
+				  <tr>
+				    <th>Protocol</th>
+				    <th>Packets</th>
+				    <th>Percentage(%)</th>
+				  </tr>
+				</thead>
+
+				<tbody>
+					{% for row in range(numofpro) %}							    	
+				      <tr>
+				        <td>{{ profreq.index[row] }}</td>		       
+				        <td>{{ profreq[row] }}</td>
+				        <td>{{ ((profreq[row]/profreq.sum())*100).round(2) }}</td>
+				      </tr>		      
+					{% endfor %}
+					<tr>
+						<th>Total Packets</th>
+						<th>{{ numoflabels }}</th>
+						<th>100</th>
+					</tr>
+				</tbody>
+			</table>
+		</div>			
+		<!--Pie chart area for protocol frequency-->
+		<div class="pieChart">
+	        <canvas id="doughnut-chart1" style="border:0;"></canvas>
+	    </div>
+    </div>   
+
+    <div class="all-protocols">
+    	<!--Table of protocol and associated length-->
+		<div class="table-of-protocols">
+			<table class="table table-striped">
+				<thead>
+				  <tr>
+				    <th>Protocol</th>
+				    <th>Sum of Length (bits)</th>
+				    <th>Percentage(%)</th>
+				  </tr>
+				</thead>
+
+				<tbody>
+					{% for row in range(numofpro) %}							    	
+				      <tr>
+				        <td>{{ profreq.index[row] }}</td>		       
+				        <td>{{ sumlength_of_eachpro[row] }}</td>
+				        <td>{{ ((sumlength_of_eachpro[row]/(df.Length.sum()*8))*100).round(2) }}</td>
+				      </tr>		      
+					{% endfor %}
+					<tr>
+						<th>Total Length</th>
+						<th>{{ df.Length.sum()*8 }}</th>
+						<th>100</th>
+					</tr>
+				</tbody>
+			</table>
+		</div>			
+		<!--Pie chart area for protocol length-->
+		<div class="pieChart">
+		    <canvas id="pie-chart2" style="border:0;"></canvas>
+		</div>
+	</div>
+
+	<!--DoS Attack Stats-->
+	<div class="table-of-httpfloodstats">
+		<table class="table table-striped">
+			<thead>
+				<h4>DoS Attack Stats</h4>
+			</thead>
+			<tbody>
+				<tr>
+				    <th>Time Span (seconds)</th>
+				    <th>Average Packets/s (pps)</th>
+				    <th>Average Throughput (Mbps)</th>
+				    					    
+				</tr>
+				<tr>
+				    <td>{{ (df.Time.iloc[-1]).round(6) }}</td>
+				    <td>{{ (df.Fnum.iloc[-1]/df.Time.iloc[-1]).round(0) }}</td>
+				    <td>{{ (((df.Length.sum()*8)/df.Time.iloc[-1])/1000000).round(6) }}</td>
+
+				</tr>										
+			</tbody>
+		</table>
+	</div>
+
+	<!--Throughput (Mbps) chart area -->
+	<div class="chartWrapper">
+        <div class="chartAreaWrapper">
+			<canvas id="line-chart1" width="{{ canvas_width }}" height="500"></canvas>    
+		</div>
+    </div>
+
+
+	<!--Packets per second (PPS) chart area -->
+	<div class="chartWrapper">
+        <div class="chartAreaWrapper">
+			<canvas id="line-chart2" width="{{ canvas_width }}" height="500"></canvas>    
+		</div>
+    </div>
+
+	<!--Requests per second (RPS) chart area -->
+	<div class="chartWrapper">
+        <div class="chartAreaWrapper">
+			<canvas id="bar-chart1" width="{{ canvas_width_httpReq }}" height="500"></canvas>    
+		</div>
+    </div>
+
+	<!--The frequency of TCP flags table -->
+    <h2>The Frequency of Flags</h2>
+	  <table class="table table-striped">
+	    <thead>
+	      <tr>
+	        <th>Source | Flag</th>	        
+	        {% for col in range(numofcolumns) %}
+	        <th>{{ groupbyFlagInInfo.columns[col] }}</th>
+	        {% endfor %}	        
+	      </tr>
+	    </thead>
+
+	    <tbody>
+	   		{% for row in range(numofrows) %}	    
+		      <tr>
+		        <td>{{ groupbyFlagInInfo.index[row] }}</td>
+		        {% for col in range(numofcolumns) %}
+		        	<td>{{ (groupbyFlagInInfo.iloc[row,col]).astype('int64') }}</td>
+		        {% endfor %}		        
+		      </tr>
+	    	{% endfor %}	     
+	    </tbody>
+	  </table>	
+	<!--TCP flags frequency chart area -->	
+	<canvas id="bar-chart2" width="1110" height="500"></canvas>    
+
+    <script type="text/javascript">    	
+		
+		//Function to get random color 
+		function getRandomColor() 
+		{
+		    var letters = '0123456789ABCDEF'.split('');
+		    var color = '#';
+		    for (var i = 0; i < 6; i++ ) 
+		    {
+		        color += letters[Math.floor(Math.random() * 16)];
+		    }
+		    return color;
+		}
+		
+    	//get the number of random colors and store them in the colors array/list
+		var colors = [];
+		for (var i = 0; i < {{numofpro}}; i++ )
+		{
+			colors.push(getRandomColor());
+		}		
+
+		//CREATE A PIE CHART FOR FREQUENCY OF EACH PROTOCOL
+		// Get the canvas for doughnut chart and store it in variable ctx1 
+		var ctx1 = document.getElementById("doughnut-chart1").getContext("2d");
+
+        // For a pie chart
+        var myPieChart1 = new Chart(ctx1, {
+            type: 'doughnut',
+            data: {
+                datasets: [{
+                    data: 
+		        		[
+		        			{% for row in range(numofpro) %} 
+		        				"{{ profreq[row] }}", 
+		        			{% endfor %}
+		        		],
+    					backgroundColor: colors
+                }],
+
+            // These labels appear in the legend and in the tooltips when hovering different arcs
+                labels: [
+                    {% for row in range(numofpro) %}    
+		    			"{{ profreq.index[row] }}", 
+		    		{% endfor %}
+                ]
+            },
+            options: {
+            		title: {display: true, text: 'PROTOCOL-FREQUENCY CHART', position:'top', fontSize:17, fontColor: 'green'},
+            		legend: {display: true, position:'right'},
+            		responsive: true
+            }
+        });	
+
+        //CREATE PIE CHART FOR TOTAL LENGTH OF EACH PROTOCOL 
+        // Get the canvas for pie chart and store it in variable ctx1 
+        var ctx2 = document.getElementById("pie-chart2").getContext("2d");
+
+        // For a pie chart
+        var myPieChart2 = new Chart(ctx2, {
+            type: 'pie',
+            data: {
+                datasets: [{
+                    data: 
+		        		[
+		        			{% for row in range(numofpro) %} 
+		        				"{{ sumlength_of_eachpro[row] }}", 
+		        			{% endfor %}
+		        		],
+    					backgroundColor: colors
+                }],
+
+            // These labels appear in the legend and in the tooltips when hovering different arcs
+                labels: [
+                    {% for row in range(numofpro) %}    
+		    			"{{ profreq.index[row] }}", 
+		    		{% endfor %}
+                ]
+            },
+            options: {
+            		title: {display: true, text: 'PROTOCOL-LENGTH CHART', position:'top', fontSize:17, fontColor: 'green'},
+            		legend: {display: true, position:'right'},
+            		responsive: true
+            }
+        });			
+
+        // CREATE A LINE CHART FOR NETWORK THROUGHPUT (MBPS)
+    	// get chart canvas
+		var ctx3 = document.getElementById("line-chart1").getContext("2d"); 		
+						
+		var chart = new Chart(ctx3, 
+		{
+			type: 'line',
+
+			options: 
+			{
+				title: {display: true, text: 'NETFLOW THROUGHPUT', fontSize: 20, fontColor: 'green'},
+		      	maintainAspectRatio: true,
+		      	legend: {display: true, position:'left'},
+		      	responsive: false,
+		      	scales: 
+		      	{
+		        	xAxes: 
+		        	[
+		          		{
+		            		scaleLabel: 
+		            		{
+				              display: true,
+				              labelString: 'Time Span',
+				              fontSize: 16
+		            		},
+
+		            		ticks: {min:0, autoSkip:true}           		
+		          		}
+		        	],
+
+		        	yAxes: 
+		        	[
+		          		{
+		            		scaleLabel: 
+		            		{
+				              display: true,
+				              labelString: 'Throughput (Mbps)',
+				              fontSize: 16
+		            		}	            		
+		            		   		
+		          		}
+		        	]
+		      	}
+		    },
+			
+		  	data: 
+		  	{
+		    	labels: 
+		    	[
+		    		{% for n in (df.index) %}    
+		    			"{{ (df.Time[n]).round(6) }}", 
+		    		{% endfor %}
+		    	],
+
+		    	datasets: 
+		    	[
+		      		{
+		      			label: "Mbps",
+		        		data: 
+		        		[
+		        			{% for n in (df.index) %}    
+		    					"{{ throughput_list[n] }}", 
+		        			{% endfor %}
+		        		],
+    					backgroundColor: getRandomColor()
+		      		}
+		    	]
+		  	} 	
+
+		});
+
+		// CREATE A LINE CHART FOR PACKETS PER SECOND 
+    	// get chart canvas
+		var ctx4 = document.getElementById("line-chart2").getContext("2d"); 		
+						
+		var chart = new Chart(ctx4, 
+		{
+			type: 'line',
+
+			options: 
+			{
+				title: {display: true, text: 'PACKETS PER SECOND GRAPH', fontSize: 20, fontColor: 'green'},
+		      	maintainAspectRatio: true,
+		      	legend: {display: true, position:'left'},
+		      	responsive: false,
+		      	animation: false,
+		      	scales: 
+		      	{
+		        	xAxes: 
+		        	[
+		          		{
+		            		scaleLabel: 
+		            		{
+				              display: true,
+				              labelString: 'Time Span',
+				              fontSize: 16
+		            		},
+
+		            		ticks: {min:0, autoSkip:true}           		
+		          		}
+		        	],
+
+		        	yAxes: 
+		        	[
+		          		{
+		            		scaleLabel: 
+		            		{
+				              display: true,
+				              labelString: 'Packets per second',
+				              fontSize: 16
+		            		}	            		
+		            		   		
+		          		}
+		        	]
+		      	}
+		    },
+			
+		  	data: 
+		  	{
+		    	labels: 
+		    	[
+		    		{% for n in (df.index) %}    
+		    			"{{ (df.Time[n]).round(6) }}", 
+		    		{% endfor %}
+		    	],
+
+		    	datasets: 
+		    	[
+		      		{
+		      			label: "Pps",
+		        		data: 
+		        		[
+		        			{% for n in (df.index) %}    
+		    					"{{ packetsps_list[n] }}", 
+		        			{% endfor %}
+		        		],
+    					backgroundColor: getRandomColor()
+		      		}
+		    	]
+		  	}	
+
+		});
+
+		//CREATE A CHART FOR HTTP REQUESTS PER SECOND
+    	// get chart canvas for line chart
+		var ctx5 = document.getElementById("bar-chart1").getContext("2d"); 		
+		var chart = new Chart(ctx5, 
+		{
+			type: 'bar',
+
+			options: 
+			{
+				title: {display: true, text: 'HTTP REQUESTS PER SECOND', fontSize: 20, fontColor: 'black'},
+		      	maintainAspectRatio: true,
+		      	legend: {display: true, position:'left'},
+		      	responsive: false,
+		      	scales: 
+		      	{
+		        	xAxes: 
+		        	[
+		          		{
+		            		scaleLabel: 
+		            		{
+				              display: true,
+				              labelString: 'Time Span',
+				              fontSize: 16
+		            		},
+
+		            		ticks: {min:0, autoSkip:true}           		
+		          		}
+		        	],
+
+		        	yAxes: 
+		        	[
+		          		{
+		            		scaleLabel: 
+		            		{
+				              display: true,
+				              labelString: 'HTTP Requests (RPS)',
+				              fontSize: 16
+		            		}	            		
+		            		   		
+		          		}
+		        	]
+		      	}
+		    },
+			
+		  	data: 
+		  	{
+		    	labels: 
+		    	[
+		    		{% for i in range(numOfHTTPReqs) %}    
+		    			"{{ (httpReq.Time[httpReq.index[i]]).round(6) }}", 
+		    		{% endfor %}
+		    	],
+
+		    	datasets: 
+		    	[
+		      		{
+		      			label: "RPS",
+		        		data: 
+		        		[
+		        			{% for i in range(numOfHTTPReqs) %}    
+		    					"{{ httpreqpersecond_list[i] }}", 
+		        			{% endfor %}
+		        		],
+
+    					backgroundColor: getRandomColor()		
+		      		}
+		    	]
+		  	}
+		}); 
+
+		// CREATE A BAR CHART FOR SOURCE IP ADDRESSES AND ASSOCIATED TCP FLAGS
+		// get chart canvas
+		var ctx6 = document.getElementById("bar-chart2").getContext("2d");	
+
+		var chart = new Chart(ctx6, 
+		{
+			type: 'bar',
+
+			options: 
+			{
+				title: {display: true, text: 'THE FREQUENCY OF TCP FLAGS', fontSize: 20, fontColor: 'green'},
+		      	maintainAspectRatio: true,
+		      	legend: {display: true, position:'right'},
+		      	responsive: false,
+		      	scales: 
+		      	{
+		        	xAxes: 
+		        	[
+		          		{
+		            		scaleLabel: 
+		            		{
+				              display: true,
+				              labelString: 'Source',
+				              fontSize: 16
+		            		}
+		            				            		
+		          		}
+		        	],
+
+		        	yAxes: 
+		        	[
+		          		{
+		            		scaleLabel: 
+		            		{
+				              display: true,
+				              labelString: 'Frequency',
+				              fontSize: 16
+		            		},
+		            		ticks: {min:0}		            		
+		          		}
+		        	]
+		      	}
+		    },
+			
+		  	data: 
+		  	{
+		    	labels: 
+		    	[
+		    		{% for row in range(numofrows) %}     
+		    			"{{ groupbyFlagInInfo.index[row] }}", 
+		    		{% endfor %}
+		    	],
+
+		    	datasets: 
+		    	[
+		      	{% for col in range(numofcolumns) %}
+		      		{   
+		      			//label for legend
+		      			label: "{{ groupbyFlagInInfo.columns[col] }}",
+		      			backgroundColor: getRandomColor(),
+		      			stack: "Stack {{col}}",    		
+		        		data: 
+		        		[
+		        			{% for row in range(numofrows) %}			        			
+			    				"{{ groupbyFlagInInfo.iloc[row,col] }}",			        			
+			        		{% endfor %}
+		        		]    								
+		      		},
+		      	{% endfor %}	
+		    	]
+		  	}		  	
+
+		});
+ 
+	</script>	
+
+{% endblock content %}
+	

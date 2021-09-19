@@ -1,0 +1,25 @@
+{% extends "layout.html" %}
+
+
+{% block background %}	
+    style="background-image: url({{ url_for('static', filename='/images/upload-bg.jpg') }}); background-position: center;
+  background-repeat: repeat; background-size: cover; position: relative;"  
+{% endblock background %}
+
+
+{% block home_active %}
+	style="background-color: green; color: white;"
+{% endblock home_active %}
+
+{% block content %}
+	<div class="introduction">
+	<h2 style="color:green">Introduction</h2>
+		<p>Denial of service (DOS) and Distributed Denial of Service (DDOS) attacks are common forms of network attacks that aim to bring down of network service by overloading network servers with requests. The goal of this project is to take an existing dataset containing DOS and DDOS attacks in order to visualize what denial of service attacks look like.</p>		
+
+		<p>Supervisor: &emsp;<b>Arnold Hensman</b></p>
+		<p>Student: &emsp;<b>Phong Vu - B00100841</b></p>
+		
+	</div>
+
+	
+{% endblock content %}

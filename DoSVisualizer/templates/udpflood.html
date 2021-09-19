@@ -1,0 +1,315 @@
+{% extends "layout.html" %}
+
+{% block dosviz_active %}
+	style="background-color: green; color: white;"
+{% endblock dosviz_active %}
+
+{% block content %}
+
+<h2>UDP Flood Analysis and Visualization</h2>
+	<!-- Requests per second threshold form -->	
+	<div class="bandwidth-threshold">	
+		<form class="form-inline" name="bandwidth-threshold-form" action="/udpflood" method="POST" onsubmit="confirmation()" enctype="multipart/form-data">
+			<div class="form-group">
+				<label for="mbpsthreshold">Set bandwidth threshold (Mbps): </label>
+				<input type="number" class="form-control" name="mbpsthreshold" min="0" step="0.000001" required />
+			</div>
+			<input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+			<div class="form-group">	
+				<button type="submit" class="btn btn-primary">Submit</button>
+			</div>
+			<div class="show-threshold">
+				<label>Bandwidth threshold (Mbps): <span>{{ mbps_threshold }}</span></label>
+			</div>
+		</form>
+	</div>
+
+	<!-- Chart area for throughput (Mbps) -->
+	<div class="chartWrapper">
+        <div class="chartAreaWrapper">
+			<canvas id="bar-chart1" width="{{ canvas_width }}" height="500">
+			</canvas>    
+		</div>
+    </div>
+
+	<div class="all-protocols"> 			
+		<div class="table-of-protocols">
+			<table class="table table-striped">
+				<thead>
+				  <tr>
+				    <th>Protocol</th>
+				    <th>Packets</th>
+				    <th>Percentage(%)</th>
+				  </tr>
+				</thead>
+
+				<tbody>
+					{% for row in range(numofpro) %}							    	
+				      <tr>
+				        <td>{{ profreq.index[row] }}</td>		       
+				        <td>{{ profreq[row] }}</td>
+				        <td>{{ ((profreq[row]/profreq.sum())*100).round(2) }}</td>
+				      </tr>		      
+					{% endfor %}
+					<tr>
+						<th>Total Packets</th>
+						<th>{{ profreq.sum() }}</th>
+						<th>100</th>
+					</tr>
+				</tbody>
+			</table>
+		</div>			
+
+		<div class="pieChart">
+	        <canvas id="doughnut-chart1" style="border:0;"></canvas>
+	    </div>
+	</div>   
+
+	<!-- Table and chart area of protocol frequency. -->
+	<div class="all-protocols">
+		<div class="table-of-protocols">
+			<table class="table table-striped">
+				<thead>
+				  <tr>
+				    <th>Protocol</th>
+				    <th>Sum of Length (bits)</th>
+				    <th>Percentage(%)</th>
+				  </tr>
+				</thead>
+
+				<tbody>
+					{% for row in range(numofpro) %}							    	
+				      <tr>
+				        <td>{{ profreq.index[row] }}</td>		       
+				        <td>{{ sumlength_of_eachpro[row] }}</td>
+				        <td>{{ ((sumlength_of_eachpro[row]/(df.Length.sum()*8))*100).round(2) }}</td>
+				      </tr>		      
+					{% endfor %}
+					<tr>
+						<th>Total Length</th>
+						<th>{{ df.Length.sum()*8 }}</th>
+						<th>100</th>
+					</tr>
+				</tbody>
+			</table>
+		</div>			
+
+		<div class="pieChart">
+		    <canvas id="pie-chart2" style="border:0;"></canvas>
+		</div>
+	</div>
+
+	<!-- Table and chart area of protocol lengths. -->
+	<div class="table-of-httpfloodstats">
+		<table class="table table-striped">
+			<thead>
+				<h4>UDP Flood Stats</h4>
+			</thead>
+			<tbody>
+				<tr>
+				    <th>Time Span (seconds)</th>
+				    <th>Average Packets/s (Pps)</th>
+				    <th>Average Throughput (Mbps)</th>
+				    				    
+				</tr>
+				<tr>
+				    <td>{{ (df.Time.iloc[-1]).round(6) }}</td>
+				    <td>{{ (df.Fnum.iloc[-1]/df.Time.iloc[-1]).round(0) }}</td>
+				    <td>{{ (((df.Length.sum()*8)/df.Time.iloc[-1])/1000000).round(6) }}</td>
+				    
+				</tr>										
+			</tbody>
+		</table>
+	</div>
+
+    <script type="text/javascript"> 
+		//Function to display a message after the "Submit" button was clicked
+		function confirmation() 
+		{
+		  var y = document.forms["bandwidth-threshold-form"]["mbpsthreshold"].value;
+		  var txtPattern = /[eE]/g;
+		  var findLetter = y.match(txtPattern);
+
+		  if (findLetter) 
+		  {		  	
+		  	alert("Only digits accepted! Please enter your threshold again.");		  	
+		  }
+		  else if (y !=="" && !findLetter)
+		  {
+		  	alert("Bandwidth threshold was successfully set.");		  		  
+		  }
+		  else
+		  {
+		  	alert("Failed to set threshold!")
+		  }		  
+		}
+
+		//Function to get random color for each bar 
+		function getRandomColor() 
+		{
+		    var letters = '0123456789ABCDEF'.split('');
+		    var color = '#';
+		    for (var i = 0; i < 6; i++ ) 
+		    {
+		        color += letters[Math.floor(Math.random() * 16)];
+		    }
+		    return color;
+		}
+		
+    	//get the number of random colors and store them in the colors array
+		var colors = [];
+		for (var i = 0; i < {{numofpro}}; i++ )
+		{
+			colors.push(getRandomColor());
+		}		
+
+		//CREATE A PIE CHART FOR FREQUENCY OF EACH PROTOCOL 
+		var ctx1 = document.getElementById("doughnut-chart1").getContext("2d");
+        // For a doughnut chart
+        var myPieChart1 = new Chart(ctx1, {
+            type: 'doughnut',
+            data: {
+                datasets: [{
+                    data: 
+		        		[
+		        			{% for row in range(numofpro) %} 
+		        				"{{ profreq[row] }}", 
+		        			{% endfor %}
+		        		],
+    					backgroundColor: colors
+                }],
+
+            // These labels appear in the legend and in the tooltips when hovering different arcs
+                labels: [
+                    {% for row in range(numofpro) %}    
+		    			"{{ profreq.index[row] }}", 
+		    		{% endfor %}
+                ]
+            },
+            options: {
+            		title: {display: true, text: 'PROTOCOL-FREQUENCY CHART', position:'top', fontSize:18, fontColor: 'black'},
+            		legend: {display: true, position:'right'},
+            		responsive: true
+            }
+        });	
+
+        //CREATE PIE CHART FOR TOTAL LENGTH OF EACH PROTOCOL 
+        var ctx2 = document.getElementById("pie-chart2").getContext("2d");
+        // For a pie chart
+        var myPieChart2 = new Chart(ctx2, {
+            type: 'pie',
+            data: {
+                datasets: [{
+                    data: 
+		        		[
+		        			{% for row in range(numofpro) %} 
+		        				"{{ sumlength_of_eachpro[row] }}", 
+		        			{% endfor %}
+		        		],
+    					backgroundColor: colors
+                }],
+
+            // These labels appear in the legend and in the tooltips when hovering different arcs
+                labels: [
+                    {% for row in range(numofpro) %}    
+		    			"{{ profreq.index[row] }}", 
+		    		{% endfor %}
+                ]
+            },
+            options: {
+            		title: {display: true, text: 'PROTOCOL-LENGTH CHART', position:'top', fontSize:18, fontColor: 'black'},
+            		legend: {display: true, position:'right'},
+            		responsive: true
+            }
+        });
+
+        // NETFLOW THROUGHPUT CHART CODE    	
+		var ctx3 = document.getElementById("bar-chart1").getContext("2d"); // get chart canvas		
+		// For network flow throughput bar chart				
+		var chart = new Chart(ctx3, 
+		{
+			type: 'bar',		
+
+			options: 
+			{
+				title: {display: true, text: 'NETFLOW THROUGHPUT', fontSize: 20, fontColor: 'green'},
+		      	maintainAspectRatio: true,
+		      	legend: {display: true, position:'left'},
+		      	responsive: false,
+		      	scales: 
+		      	{
+		        	xAxes: 
+		        	[
+		          		{
+		            		scaleLabel: 
+		            		{
+				              display: true,
+				              labelString: 'Time Span',
+				              fontSize: 16
+		            		},
+		            		ticks: {min:0, autoSkip:true}           		
+		          		}
+		        	],
+
+		        	yAxes: 
+		        	[
+		          		{
+		            		scaleLabel: 
+		            		{
+				              display: true,
+				              labelString: 'Throughput (Mbps)',
+				              fontSize: 16
+		            		},
+		            		ticks: {min:0, autoSkip:true}	            		
+		            		   		
+		          		}
+		        	]
+		      	}
+		    },
+			
+		  	data: 
+		  	{
+		    	labels: 
+		    	[
+		    		{% for n in range(numofelements) %}    
+		    			"{{ (df.Time[n]).round(6) }}", 
+		    		{% endfor %}
+		    	],
+		    	datasets: 
+		    	[
+		      		{
+		      			label: "Mbps",
+		        		data: 
+		        		[
+		        			{% for n in range(numofelements) %}    
+		    					"{{ throughput_list[n] }}", 
+		        			{% endfor %}
+		        		],
+    					backgroundColor: [
+    						{% for n in range(numofelements) %}    
+		    					{% if throughput_list[n] > mbps_threshold %}
+		    						"red",
+		    					{% else %}
+		    						"green",
+		    					{% endif %} 
+		        			{% endfor %}
+		        		]
+		      		},		      		
+		      		{ // Dataset for RPS threshold line chart
+		      			label: "Bandwidth Threshold",
+		      			data: [
+		      					{% for i in range(numofelements) %} 
+		      					"{{mbps_threshold}}", 
+		      					{% endfor %}
+		      			],
+		      			type: "line",
+		      			fill: false,
+		      			pointRadius: 2,
+		      			backgroundColor: "red"
+		      		}
+		    	]
+		  	}
+		});
+    </script>    
+{% endblock content %}
+	

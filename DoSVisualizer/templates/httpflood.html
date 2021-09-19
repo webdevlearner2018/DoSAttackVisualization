@@ -1,0 +1,326 @@
+{% extends "layout.html" %}
+
+{% block dosviz_active %}
+	style="background-color: green; color: white;"
+{% endblock dosviz_active %}
+
+{% block content %}
+     
+	<h2>HTTP GET/POST Flood Analysis and Visualization</h2>
+	<!-- Requests per second threshold form -->
+	<div class="rps-threshold">	
+		<form class="form-inline" name="rps-threshold-form" action="/httpflood" method="POST" onsubmit="confirmation()" enctype="multipart/form-data">
+			<div class="form-group">
+				<label for="rpsthreshold">Set requests per second threshold (RPS): </label>
+				<input type="number" class="form-control" name="rpsthreshold" min="1" step="1" required />
+			</div>
+			<input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+			<div class="form-group">	
+				<button type="submit" class="btn btn-primary">Submit</button>
+			</div>
+			<div class="show-threshold">
+				<label>Requests per second threshold (RPS): <span>{{ rps_threshold }}</span></label>
+			</div>
+		</form>
+	</div>		
+
+	<!--Requests per second chart area-->
+	<div class="chartWrapper">
+        <div class="chartAreaWrapper">
+			<canvas id="bar-chart1" width="{{ canvas_width_httpReq }}" height="500"></canvas>    
+		</div>
+    </div>
+	<!-- Table and chart area of protocol frequency. -->
+    <div class="all-protocols">
+		<div class="table-of-protocols">
+			<table class="table table-striped">
+			  <thead>
+				<tr>
+					<th>Protocol</th>
+				    <th>Packets</th>
+				    <th>Percentage(%)</th>
+				</tr>
+			  </thead>
+			  <tbody>
+				<tr>
+					<td>HTTP GET/POST Requests</td>
+					<td>{{ numOfHTTPReqs }}</td>
+				    <td>{{ ((numOfHTTPReqs/profreq.sum())*100).round(2) }}</td>						
+				</tr>
+				<tr>
+					<td>HTTP Responds</td>
+					<td>{{ numofHTTPRes }}</td>
+				    <td>{{ ((numofHTTPRes/profreq.sum())*100).round(2) }}</td>						
+				</tr>
+				<tr>
+					<td>Other Protocols</td>
+					<td>{{ numoflabels - httpfreq }}</td>
+				    <td>{{ (((numoflabels - httpfreq)/profreq.sum())*100).round(2) }}</td>						
+				</tr>
+				<tr>
+					<th>Total Packets</th>
+					<th>{{ numoflabels }}</th>
+					<th>100</th>
+				</tr>
+			  </tbody>
+			</table>
+		</div>			
+
+		<div class="pieChart">
+		    <canvas id="doughnut-chart1" style="border:0;"></canvas>
+		</div>
+	</div>
+
+	<!-- Table and chart area of protocol lengths. -->
+    <div class="all-protocols">
+		<div class="table-of-protocols">
+			<table class="table table-striped">
+				<thead>
+				  <tr>
+				    <th>Protocol</th>
+				    <th>Sum of Length (bits)</th>
+				    <th>Percentage(%)</th>
+				  </tr>
+				</thead>
+
+				<tbody>
+					<tr>
+						<td>HTTP GET/POST Requests</td>
+						<td>{{ (httpReq.Length.sum())*8 }}</td>
+					    <td>{{ ((httpReq.Length.sum()/df.Length.sum())*100).round(2) }}</td>				
+					</tr>
+					<tr>
+						<td>HTTP Responds</td>
+						<td>{{ (httpRes.Length.sum())*8 }}</td>
+					    <td>{{ ((httpRes.Length.sum()/df.Length.sum())*100).round(2) }}</td>						
+					</tr>
+					<tr>
+						<td>Other Protocols</td>
+						<td>{{ (df.Length.sum() - http.Length.sum())*8 }}</td>
+					    <td>{{ (((df.Length.sum() - http.Length.sum())/df.Length.sum())*100).round(2) }}</td>						
+					</tr>
+					<tr>
+						<th>Total Length</th>
+						<th>{{ df.Length.sum()*8 }}</th>
+						<th>100</th>
+					</tr>
+				</tbody>
+			</table>
+		</div>			
+
+		<div class="pieChart">
+		    <canvas id="pie-chart2" style="border:0;"></canvas>
+		</div>
+	</div>
+
+	<!--HTTP Flood Stats-->
+	<div class="table-of-httpfloodstats">
+		<table class="table table-striped">
+			<thead>
+				<h4>HTTP Flood Stats</h4>
+			</thead>
+			<tbody>
+				<tr>
+				    <th>Time Span (seconds)</th>
+				    <th>Average Packets/s (pps)</th>
+				    <th>Average Throughput (Mbps)</th>
+				    <th>Average HTTP Requests/s (rps)</th>					    
+				</tr>
+				<tr>
+				    <td>{{ (df.Time.iloc[-1]).round(6) }}</td>
+				    <td>{{ (df.Fnum.iloc[-1]/df.Time.iloc[-1]).round(0) }}</td>
+				    <td>{{ (((df.Length.sum()*8)/df.Time.iloc[-1])/1000000).round(6) }}</td>
+				    <td>{{ (numOfHTTPReqs/df.Time.iloc[-1]).round(0) }}</td>
+				</tr>										
+			</tbody>
+		</table>
+	</div>
+	
+    <script type="text/javascript">    	
+		//Function to display a message after the "Submit" button was clicked
+		function confirmation() 
+		{
+		  var y = document.forms["rps-threshold-form"]["rpsthreshold"].value;
+		  var txtPattern = /[eE]/g;
+		  var findLetter = y.match(txtPattern);
+
+		  if (findLetter) 
+		  {		  	
+		  	alert("Only digits accepted! Please enter your threshold again.");		  	
+		  }
+		  else if (y !=="" && !findLetter)
+		  {
+		  	alert("RPS threshold was successfully set.");		  		  
+		  }
+		  else
+		  {
+		  	alert("Failed to set threshold!")
+		  }		  
+		}
+
+		//Function to get random color for each bar 
+		function getRandomColor() 
+		{
+		    var letters = '0123456789ABCDEF'.split('');
+		    var color = '#';
+		    for (var i = 0; i < 6; i++ ) 
+		    {
+		        color += letters[Math.floor(Math.random() * 16)];
+		    }
+		    return color;
+		}
+		
+    	//get the number of random colors and store them in the colors array
+		var colors = [];
+		for (var i = 0; i < 3; i++ )
+		{
+			colors.push(getRandomColor());
+		}		
+
+		//CREATE A PIE CHART FOR FREQUENCY OF EACH PROTOCOL 
+		var ctx1 = document.getElementById("doughnut-chart1").getContext("2d");
+
+        // For a pie chart
+        var myPieChart1 = new Chart(ctx1, {
+            type: 'doughnut',
+            data: {
+                datasets: [{
+                    data: 
+		        		["{{ numOfHTTPReqs }}", "{{ numofHTTPRes }}", "{{ numoflabels - httpfreq }}"],	        					        		
+    					backgroundColor: colors
+                }],
+
+            	//These labels appear in the legend and in the tooltips when hovering different arcs
+                labels: ["HTTP GET/POST Requests", "HTTP Responds", "Other Protocols"]   
+                
+            },
+            options: {
+            		title: {display: true, text: 'PROTOCOL - FREQUENCY CHART', position:'top', fontSize:18, fontColor: 'black'},
+            		legend: {display: true, position:'right'},
+            		responsive: true
+            }
+        });	
+
+        //CREATE PIE CHART FOR TOTAL LENGTH OF HTTP GET/POST REQUESTS, HTTP RESPONDS AND OTHER PROTOCOLS 
+        var ctx2 = document.getElementById("pie-chart2").getContext("2d");
+
+        // For a pie chart
+        var myPieChart2 = new Chart(ctx2, {
+            type: 'pie',
+            data: {
+                datasets: [{
+                    data: 
+		        		["{{ (httpReq.Length.sum())*8 }}", "{{ httpRes.Length.sum()*8 }}", "{{ (df.Length.sum() - http.Length.sum())*8 }}"],
+		        			
+    					backgroundColor: colors
+                }],
+
+            	// These labels appear in the legend and in the tooltips when hovering different arcs
+                labels: ["HTTP GET/POST Requests", "HTTP Responds", "Other Protocols"]
+                    
+            },
+            options: {
+            		title: {display: true, text: 'PROTOCOL - LENGTH CHART', position:'top', fontColor: 'black', fontSize:18},
+            		legend: {display: true, position:'right'},
+            		responsive: true
+            }
+        });			
+
+
+    	// get chart canvas for line chart
+		var ctx3 = document.getElementById("bar-chart1").getContext("2d"); 		
+		var chart = new Chart(ctx3, 
+		{
+			type: 'bar',
+
+			options: 
+			{
+				title: {display: true, text: 'HTTP REQUESTS PER SECOND', fontSize: 20, fontColor: 'black'},
+		      	maintainAspectRatio: true,
+		      	legend: {display: true, position:'left'},
+		      	responsive: false,
+		      	scales: 
+		      	{
+		        	xAxes: 
+		        	[
+		          		{
+		            		scaleLabel: 
+		            		{
+				              display: true,
+				              labelString: 'Time Span',
+				              fontSize: 16
+		            		},
+
+		            		ticks: {min:0, autoSkip:true}           		
+		          		}
+		        	],
+
+		        	yAxes: 
+		        	[
+		          		{
+		            		scaleLabel: 
+		            		{
+				              display: true,
+				              labelString: 'HTTP Requests (RPS)',
+				              fontSize: 16
+		            		}	            		
+		            		   		
+		          		}
+		        	]
+		      	}
+		    },
+			
+		  	data: 
+		  	{
+		    	labels: 
+		    	[
+		    		{% for i in range(numOfHTTPReqs) %}    
+		    			"{{ (httpReq.Time[httpReq.index[i]]).round(6) }}", 
+		    		{% endfor %}
+		    	],
+
+		    	datasets: 
+		    	[
+		      		{
+		      			label: "RPS",
+		        		data: 
+		        		[
+		        			{% for i in range(numOfHTTPReqs) %}    
+		    					"{{ httpreqpersecond_list[i] }}", 
+		        			{% endfor %}
+		        		],
+
+    					backgroundColor: [
+    						{% for i in range(numOfHTTPReqs) %}    
+		    					{% if httpreqpersecond_list[i] > rps_threshold %}
+		    						"red",
+		    					{% else %}
+		    						"green",
+		    					{% endif %} 
+		        			{% endfor %}
+		        		]
+    					  					
+		      		},
+		      		// Dataset for RPS threshold line chart
+		      		{
+		      			label: "Rps Threshold",
+		      			data: [
+		      					{% for i in range(numOfHTTPReqs) %}    
+		    						"{{rps_threshold}}", 
+		    					{% endfor %}
+		      			],
+		      			type: "line",
+		      			fill: false,
+		      			pointRadius: 4,
+		      			backgroundColor: "red",
+		      			pointBackgroundColor: "red"
+		      		}
+		    	]
+		  	}		  	
+
+		}); 
+ 
+	</script>	
+
+{% endblock content %}
+	

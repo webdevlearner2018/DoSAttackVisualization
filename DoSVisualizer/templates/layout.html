@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>	
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no">
+	<!--<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css">-->
+
+	<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='/css/bootstrap.min.css') }}">
+
+	<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='/css/style.css') }}">
+	<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='/css/font-awesome.min.css') }}"> 	
+	
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+ 	<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
+ 	<!--<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">-->	
+  	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js"></script>
+  	<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.8.0/Chart.min.js"></script>
+  	<!--<script src="https://cdn.jsdelivr.net/npm/chart.js@3.1.1/dist/chart.min.js"></script>-->  	
+
+  		
+	{% if title %}
+		<title>DoSVisualizer-{{ title }}</title>
+	{% else %}
+		<title>DoSVisualizer</title>
+	{% endif %}	
+  	
+</head>
+
+<body {% block background %}{% endblock background %}>
+	
+	<nav class="navbar navbar-expand-sm bg-dark navbar-dark">
+	  <ul class="navbar-nav">
+	  	<li class="nav-item ">
+	      <a class="nav-link" href="{{ url_for('home') }}" {% block home_active %}{% endblock home_active %}>Home</a>
+	    </li>
+	    <li class="nav-item">
+	      <a class="nav-link" href="{{ url_for('capture') }}" {% block capture_active %}{% endblock capture_active %}>Capture Traffic</a>
+	    </li>
+	    <li class="nav-item ">
+	      <a class="nav-link" href="{{ url_for('upload') }}" {% block upload_active %}{% endblock upload_active %}>Upload</a>
+	    </li>
+	    <li class="nav-item dropdown" >
+	    	<a {% block visualization_active %}{% endblock visualization_active %} class="nav-link dropdown-toggle" 
+	     		href="{{ url_for('visualization') }}"  id="navbardrop" data-toggle="dropdown">Visualization</a>
+	      	<div class="dropdown-menu">
+		        <a class="dropdown-item" href="{{ url_for('protocols') }}">All Protocols</a>
+		        <a class="dropdown-item" href="{{ url_for('source') }}">Source</a>
+		        <a class="dropdown-item" href="{{ url_for('destination') }}">Destination</a>		        
+		        <a class="dropdown-item" href="{{ url_for('groupbysource') }}">Groupby Source</a>
+		        <a class="dropdown-item" href="{{ url_for('groupbyprotocol') }}">Groupby Protocol</a>
+		        <a class="dropdown-item" href="{{ url_for('sourceport') }}">Groupby Source Port</a>
+		        <a class="dropdown-item" href="{{ url_for('dstport') }}">Groupby Destination Port</a>		            
+		        <a class="dropdown-item" href="{{ url_for('tcp') }}">TCP</a>
+		        <a class="dropdown-item" href="{{ url_for('udp') }}">UDP</a>
+		        <a class="dropdown-item" href="{{ url_for('dns') }}">DNS</a>
+		        <a class="dropdown-item" href="{{ url_for('http') }}">HTTP</a>
+		        <a class="dropdown-item" href="{{ url_for('tlsv1') }}">TLSv1</a>
+		        <a class="dropdown-item" href="{{ url_for('tlsv1_2') }}">TLSv1.2</a>
+		        <a class="dropdown-item" href="{{ url_for('tlsv1_3') }}">TLSv1.3</a>
+		        <a class="dropdown-item" href="{{ url_for('icmp') }}">ICMP</a>
+		        <a class="dropdown-item" href="{{ url_for('icmpv6') }}">ICMPv6</a>
+		        <a class="dropdown-item" href="{{ url_for('ssdp') }}">SSDP</a>		        
+		        <a class="dropdown-item" href="{{ url_for('telnet') }}">TELNET</a>
+		        <a class="dropdown-item" href="{{ url_for('arp') }}">ARP</a>
+		        <a class="dropdown-item" href="{{ url_for('ocsp') }}">OCSP</a>
+		        <a class="dropdown-item" href="{{ url_for('dhcpv6') }}">DHCPv6</a>
+		        <a class="dropdown-item" href="{{ url_for('mdns') }}">MDNS</a>
+		        <a class="dropdown-item" href="{{ url_for('db_lsp_disc') }}">DB-LSP-DISC</a>
+		        <a class="dropdown-item" href="{{ url_for('nbns') }}">NBNS</a>
+		        <a class="dropdown-item" href="{{ url_for('browser') }}">BROWSER</a>		        
+     		</div>
+	    </li>
+
+	    <li class="nav-item dropdown" >
+	    	<a {% block dosviz_active %}{% endblock dosviz_active %} class="nav-link dropdown-toggle" 
+	     		href="{{ url_for('dosvisualization') }}"  id="navbardrop" data-toggle="dropdown">DoS Visualization</a>
+	      	<div class="dropdown-menu">
+		        <a class="dropdown-item" href="{{ url_for('dosattackoverview') }}">DoS Attack Overview</a>
+		       	<a class="dropdown-item" href="{{ url_for('httpflood') }}">HTTP GET/POST Flood</a>
+		       	<a class="dropdown-item" href="{{ url_for('tcpflood') }}">TCP SYN Flood</a>    
+		       	<a class="dropdown-item" href="{{ url_for('udpflood') }}">UDP Flood</a>    
+		       	<a class="dropdown-item" href="{{ url_for('icmpflood') }}">ICMP Ping Flood</a> 
+		       	<a class="dropdown-item" href="{{ url_for('ipfragmentation') }}">IP Fragmentation Flood</a>       
+
+		    </div>	    
+	    </li>
+	    <li class="nav-item">
+	      <a class="nav-link" href="{{ url_for('filter') }}" {% block details_active %}{% endblock details_active %}>Filter Data</a>
+	    </li>   
+	  </ul>
+	</nav>
+	
+	<div class="container" style="margin-bottom:50px;">	 	
+		{% block content %}{% endblock content %}
+	</div>
+	
+	<footer >	   
+	      <small>Copyright 2021 &copy; DDoS Visualizer</small>	    
+  	</footer>
+</body>
+</html>

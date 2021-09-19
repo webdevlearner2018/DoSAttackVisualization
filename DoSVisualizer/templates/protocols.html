@@ -1,0 +1,160 @@
+{% extends "layout.html" %}
+
+{% block visualization_active %}
+	style="background-color: green; color: white;"
+{% endblock visualization_active %}
+
+{% block content %}     
+	<h2>All Protocols</h2>
+		<div class="all-protocols">			
+			<div class="table-of-protocols">
+				<table class="table table-striped">
+					<thead>
+					  <tr>
+					    <th>Protocol</th>
+					    <th>Packets</th>
+					    <th>Percentage(%)</th>
+					  </tr>
+					</thead>
+					<tbody>
+						{% for row in range(numofpro) %}							    	
+					      <tr>
+					        <td>{{ profreq.index[row] }}</td>		       
+					        <td>{{ profreq[row] }}</td>
+					        <td>{{ ((profreq[row]/profreq.sum())*100).round(2) }}</td>
+					      </tr>		      
+						{% endfor %}
+					</tbody>
+				</table>
+			</div>			
+
+			<div class="pieChart">
+		        <canvas id="doughnut-chart1" style="border:0"></canvas>
+		    </div>
+	    </div>
+
+	    <div class="all-protocols">
+			<div class="table-of-protocols">
+				<table class="table table-striped">
+					<thead>
+					  <tr>
+					    <th>Protocol</th>
+					    <th>Sum of Length (bits)</th>
+					    <th>Percentage(%)</th>
+					  </tr>
+					</thead>
+					<tbody>
+						{% for row in range(numofpro) %}							    	
+					      <tr>
+					        <td>{{ profreq.index[row] }}</td>		       
+					        <td>{{ sumlength_of_eachpro[row] }}</td>
+					        <td>{{ ((sumlength_of_eachpro[row]/(df.Length.sum()*8))*100).round(2) }}</td>
+					      </tr>		      
+						{% endfor %}
+					</tbody>
+				</table>
+			</div>			
+
+			<div class="pieChart">
+			    <canvas id="pie-chart2" style="border:0"></canvas>
+			</div>
+		</div>
+
+		<div class="table-of-stats">
+			<table class="table table-striped">
+				<tr>
+				    <th>Time Span(seconds):</th>
+				    <th>Total Length (bits):</th>
+				    <th>Average Packets Per Second:</th>
+				    <th>Average Throughput (Mbps):</th>
+				</tr>
+				<tr>
+				    <td>{{ (df.Time.iloc[-1]).round(6) }}</td>
+				    <td>{{ df.Length.sum()*8 }}</td>
+				    <td>{{ (df.Fnum.iloc[-1]/df.Time.iloc[-1]).round(0) }}</td>
+				    <td>{{ (((df.Length.sum()*8)/df.Time.iloc[-1])/1000000).round(6) }}
+				</tr>
+			</table>
+		</div>
+
+    <script type="text/javascript">		
+		//Function to get random color for each bar 
+		function getRandomColor() 
+		{
+		    var letters = '0123456789ABCDEF'.split('');
+		    var color = '#';
+		    for (var i = 0; i < 6; i++ ) 
+		    {
+		        color += letters[Math.floor(Math.random() * 16)];
+		    }
+		    return color;
+		}
+		
+    	//get the number of random colors and store them in the colors array
+		var colors = [];
+		for (var i = 0; i < {{numofpro}}; i++ )
+		{
+			colors.push(getRandomColor());
+		}		
+
+		//CREATE A PIE CHART FOR FREQUENCY OF EACH PROTOCOL 
+		var ctx1 = document.getElementById("doughnut-chart1").getContext("2d");
+        // For a pie chart
+        var myPieChart1 = new Chart(ctx1, {
+            type: 'doughnut',
+            data: {
+                datasets: [{
+                    data: 
+		        		[
+		        			{% for row in range(numofpro) %} 
+		        				"{{ profreq[row] }}", 
+		        			{% endfor %}
+		        		],
+    					backgroundColor: colors
+                }],
+
+            // These labels appear in the legend and in the tooltips when hovering different arcs
+                labels: [
+                    {% for row in range(numofpro) %}    
+		    			"{{ profreq.index[row] }}", 
+		    		{% endfor %}
+                ]
+            },
+            options: {
+            		title: {display: true, text: 'PROTOCOL - FREQUENCY CHART', position:'top', fontColor: 'green'},
+            		legend: {display: true, position:'right'},
+            		responsive: true
+            }
+        });	
+
+        //CREATE PIE CHART FOR TOTAL LENGTH OF EACH PROTOCOL 
+        var ctx2 = document.getElementById("pie-chart2").getContext("2d");
+        // For a pie chart
+        var myPieChart2 = new Chart(ctx2, {
+            type: 'pie',
+            data: {
+                datasets: [{
+                    data: 
+		        		[
+		        			{% for row in range(numofpro) %} 
+		        				"{{ sumlength_of_eachpro[row] }}", 
+		        			{% endfor %}
+		        		],
+    					backgroundColor: colors
+                }],
+            // These labels appear in the legend and in the tooltips when hovering different arcs
+                labels: [
+                    {% for row in range(numofpro) %}    
+		    			"{{ profreq.index[row] }}", 
+		    		{% endfor %}
+                ]
+            },
+            options: {
+            		title: {display: true, text: 'PROTOCOL-LENGTH CHART', position:'top', fontColor: 'green'},
+            		legend: {display: true, position:'right'},
+            		responsive: true
+            }
+        }); 
+	</script>
+{% endblock content %}
+	

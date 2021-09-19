@@ -1,0 +1,431 @@
+{% extends "layout.html" %} 
+
+{% block dosviz_active %}
+	style="background-color: green; color: white;"
+{% endblock dosviz_active %}
+
+{% block content %}
+     
+	<h2>TCP SYN Flood Analysis and Visualization</h2>
+	<!--Set TCP SYN packets per second (PPS) threshold form-->
+	<div class="pps-threshold">	
+		<form class="form-inline" name="pps-threshold-form" action="/tcpflood" method="POST" onsubmit="confirmation()" enctype="multipart/form-data">
+			<div class="form-group">
+				<label for="ppsthreshold">Set TCP SYN packets per second (PPS) threshold: </label>
+				<input type="number" class="form-control" name="ppsthreshold" min="1" step="1" required />
+			</div>
+			<input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+			<div class="form-group">	
+				<button type="submit" class="btn btn-primary">Submit</button>
+			</div>
+			<div class="show-threshold">
+				<label>TCP SYN PPS Threshold: <span>{{ tcpSYNpps_threshold }}</span></label>
+			</div>
+		</form>
+	</div>
+
+	<!--TCP SYN Packets per second (Pps) and TCP SYN PPS Threshold chart area-->
+	<div class="chartWrapper">
+        <div class="chartAreaWrapper">
+			<canvas id="bar-chart1" width="{{ canvas_width }}" height="500"></canvas>    
+		</div>
+    </div>
+
+	<!--Table contains extracted source and TCP flags-->
+    <h4>The Frequency of Flags</h4>
+	  <table class="table table-striped">
+	    <thead>
+	      <tr>
+	        <th>Source | Flag</th>	        
+	        {% for col in range(numofcolumns) %}
+	        <th>{{ groupbyFlagInInfo.columns[col] }}</th>
+	        {% endfor %}	        
+	      </tr>
+	    </thead>
+
+	    <tbody>
+	   		{% for row in range(numofrows) %}	    
+		      <tr>
+		        <td>{{ groupbyFlagInInfo.index[row] }}</td>
+		        {% for col in range(numofcolumns) %}
+		        	<td>{{ (groupbyFlagInInfo.iloc[row,col]).astype('int64') }}</td>
+		        {% endfor %}		        
+		      </tr>
+	    	{% endfor %}	     
+	    </tbody>
+	  </table>	
+	<!-- Bar chart area for TCP flags -->
+	<canvas id="bar-chart2" width="1110" height="500"></canvas>
+
+	<!-- Table and chart area of protocol frequency. -->
+    <div class="all-protocols">
+		<div class="table-of-protocols">
+			<table class="table table-striped">
+			  <thead>
+				<tr>
+					<th>Protocol-Flags </th>
+				    <th>Packets</th>
+				    <th>Percentage(%)</th>
+				</tr>
+			  </thead>
+			  <tbody>
+			  	{% for i in range(numofgroupsofflags) %}
+				<tr>
+					<td>TCP {{ groupofflags.index[i] }}</td>
+					<td>{{ groupofflags[i] }}</td>
+				    <td>{{ ((groupofflags[i]/groupofflags.sum())*100).round(2) }}</td>						
+				</tr>
+				{% endfor %}
+				<tr>
+					<td>Other Protocols</td>
+					<td>{{ numoflabels - tcpfreq }}</td>
+					{% if (numoflabels - tcpfreq) == 0 %}
+						<td>0</td>
+					{% else %}
+				    	<td>{{ (((numoflabels - tcpfreq)/numoflabels)*100) }}</td>						
+					{% endif %}
+				</tr>
+				<tr>
+					<th>Total Packets</th>
+					<th>{{ numoflabels }}</th>
+					<th>100</th>
+				</tr>
+			  </tbody>
+			</table>
+		</div>			
+		<!--Doughnut chart area for TCP flags, other protocols and their frequency-->
+		<div class="pieChart">
+		    <canvas id="doughnut-chart1" style="border:0;"></canvas>
+		</div>
+	</div>
+	<!-- Table and chart area of protocol lengths. -->
+    <div class="all-protocols">
+		<div class="table-of-protocols">
+			<table class="table table-striped">
+				<thead>
+				  <tr>
+				    <th>Protocol</th>
+				    <th>Sum of Length (bits)</th>
+				    <th>Percentage(%)</th>
+				  </tr>
+				</thead>
+
+				<tbody>
+					{% for row in range(numofpro) %}							    	
+				      <tr>
+				        <td>{{ profreq.index[row] }}</td>		       
+				        <td>{{ sumlength_of_eachpro[row] }}</td>
+				        <td>{{ ((sumlength_of_eachpro[row]/(df.Length.sum()*8))*100).round(2) }}</td>
+				      </tr>		      
+					{% endfor %}
+					<tr>
+						<th>Total Length</th>
+						<th>{{ df.Length.sum()*8 }}</th>
+						<th>100</th>
+					</tr>
+				</tbody>
+			</table>
+		</div>			
+		<!--Pie chart area for protocols and their sum of lengths-->
+		<div class="pieChart">
+		    <canvas id="pie-chart2" style="border:0;"></canvas>
+		</div>
+	</div>
+
+	<!--TCP Flood Stats-->	
+	<div class="table-of-httpfloodstats">
+		<table class="table table-striped">
+			<thead>
+				<h4>TCP Flood Stats</h4>
+			</thead>
+			<tbody>
+				<tr>
+				    <th>Time Span (seconds)</th>
+				    <th>Average Packets/s (pps)</th>
+				    <th>Average Throughput (Mbps)</th>
+				    				    
+				</tr>
+				<tr>
+				    <td>{{ (df.Time.iloc[-1]).round(6) }}</td>
+				    <td>{{ (df.Fnum.iloc[-1]/df.Time.iloc[-1]).round(0) }}</td>
+				    <td>{{ (((df.Length.sum()*8)/df.Time.iloc[-1])/1000000).round(6) }}</td>				    
+				</tr>										
+			</tbody>
+		</table>
+	</div>		
+
+
+    <script type="text/javascript">    	
+		//Function to display a message after the "Submit" button was clicked
+		function confirmation() 
+		{
+		  var y = document.forms["pps-threshold-form"]["ppsthreshold"].value;
+		  var txtPattern = /[eE]/g;
+		  var findLetter = y.match(txtPattern);
+
+		  if (findLetter) 
+		  {		  	
+		  	alert("Only digits accepted! Please enter your threshold again.");		  	
+		  }
+		  else if (y !=="" && !findLetter)
+		  {
+		  	alert("PPS threshold was successfully set.");		  		  
+		  }
+		  else
+		  {
+		  	alert("Failed to set threshold!")
+		  }		  
+		}
+		
+		//Function to get random color for each bar 
+		function getRandomColor() 
+		{
+		    var letters = '0123456789ABCDEF'.split('');
+		    var color = '#'; 
+		    for (var i = 0; i < 6; i++ ) 
+		    {
+		        color += letters[Math.floor(Math.random() * 16)];
+		    }
+		    return color;
+		}
+		
+    	//get the number of random colors and store them in the colors array
+		var colors = [];
+		for (var i = 0; i < {% if numofpro > numofgroupsofflags %}
+								{{ numofpro }}
+							{% else %}
+								{{ numofgroupsofflags + 1 }}
+							{% endif %}; i++)
+		{
+			colors.push(getRandomColor());
+		}		
+
+		//CREATE A PIE CHART FOR FREQUENCY OF EACH PROTOCOL 
+		var ctx1 = document.getElementById("doughnut-chart1").getContext("2d");
+        // For a doughnut chart
+        var myPieChart1 = new Chart(ctx1, {
+            type: 'doughnut',
+            data: {
+                datasets: [{
+                    data:[
+		                    {% for i in range(numofgroupsofflags) %}					
+								"{{ groupofflags[i] }}",					
+							{% endfor %}
+				        	"{{ numoflabels - tcpfreq }}"
+			        	],	        					        		
+    					backgroundColor: colors
+                }],
+
+            	//These labels appear in the legend and in the tooltips when hovering different arcs
+                labels: [
+			                {% for i in range(numofgroupsofflags) %}					
+								"{{ groupofflags.index[i] }}",					
+							{% endfor %}
+				        	"Other Protocols"
+				        ]                
+            },
+            options: {
+            		title: {display: true, text: 'PROTOCOL - FREQUENCY CHART', position:'top', fontSize:18, fontColor: 'black'},
+            		legend: {display: true, position:'right'},
+            		responsive: true
+            }
+        });	
+
+       
+        //CREATE PIE CHART FOR TOTAL LENGTH OF EACH PROTOCOL 
+        var ctx2 = document.getElementById("pie-chart2").getContext("2d");
+
+            // For a pie chart
+        var myPieChart2 = new Chart(ctx2, {
+            type: 'pie',
+            data: {
+                datasets: [{
+                    data: 
+		        		[
+		        			{% for row in range(numofpro) %} 
+		        				"{{ sumlength_of_eachpro[row] }}", 
+		        			{% endfor %}
+		        		],
+    					backgroundColor: colors
+                }],
+
+            // These labels appear in the legend and in the tooltips when hovering different arcs
+                labels: [
+                    {% for row in range(numofpro) %}    
+		    			"{{ profreq.index[row] }}", 
+		    		{% endfor %}
+                ]
+            },
+            options: {
+            		title: {display: true, text: 'PROTOCOL-LENGTH CHART', position:'top', fontSize:18, fontColor: 'black'},
+            		legend: {display: true, position:'right'},
+            		responsive: true
+            }
+        });		
+
+    	// get chart canvas
+		var ctx3 = document.getElementById("bar-chart1").getContext("2d"); 		
+						
+		var chart = new Chart(ctx3, 
+		{
+			type: 'bar',			
+
+			options: 
+			{
+				title: {display: true, text: 'TCP SYN PACKETS PER SECOND', fontSize: 20, fontColor: 'green'},
+		      	maintainAspectRatio: true,
+		      	legend: {display: true, position:'left'},
+		      	responsive: false,
+		      	scales: 
+		      	{
+		        	xAxes: 
+		        	[
+		          		{
+		            		scaleLabel: 
+		            		{
+				              display: true,
+				              labelString: 'Time Span',
+				              fontSize: 16
+		            		},
+
+		            		ticks: {min:0, autoSkip:true}           		
+		          		}
+		        	],
+
+		        	yAxes: 
+		        	[
+		          		{
+		            		scaleLabel: 
+		            		{
+				              display: true,
+				              labelString: 'TCP SYN Packets Per Second',
+				              fontSize: 16
+		            		}	            		
+		            		   		
+		          		}
+		        	]
+		      	}
+		    },
+			
+		  	data: 
+		  	{
+		    	labels: 
+		    	[
+		    		{% for i in (tcpSYNflags_df.index) %}    
+		    			"{{ (tcpSYNflags_df.Time[i]).round(6) }}", 
+		    		{% endfor %}
+		    	],
+
+		    	datasets: 
+		    	[
+		      		{
+		      			label: "TCP SYN PPS",
+		        		data: 
+		        		[
+		        			{% for item in (tcpSYN_pps) %}    
+		    					"{{ item }}", 
+		        			{% endfor %}
+		        		],
+    					backgroundColor: [
+    						{% for item in (tcpSYN_pps) %}  
+		    					{% if item > tcpSYNpps_threshold %}
+		    						"red",
+		    					{% else %}
+		    						"green",
+		    					{% endif %} 
+		        			{% endfor %}
+		        		]
+		      		},
+		      		{
+		      			label: "TCP SYN PPS Threshold",
+		      			data: [
+		      					{% for i in (df.index) %}    
+		    						"{{tcpSYNpps_threshold}}", 
+		    					{% endfor %}
+		      			],
+		      			type: "line",		      			
+		      			pointRadius: 2,
+		      			fill: false,
+		      			backgroundColor: "",
+		      			borderColor: 'orange',
+		      			pointBackgroundColor: "orange"		      			
+		      		}
+		    	]
+		  	}
+		});
+
+		// get chart canvas
+		var ctx4 = document.getElementById("bar-chart2").getContext("2d");	
+
+		var chart = new Chart(ctx4, 
+		{
+			type: 'bar',
+
+			options: 
+			{
+				title: {display: true, text: 'THE FREQUENCY OF FLAGS', fontSize: 20, fontColor: 'green'},
+		      	maintainAspectRatio: true,
+		      	legend: {display: true, position:'right'},
+		      	responsive: false,
+		      	scales: 
+		      	{
+		        	xAxes: 
+		        	[
+		          		{
+		            		scaleLabel: 
+		            		{
+				              display: true,
+				              labelString: 'Source',
+				              fontSize: 16
+		            		}
+		            				            		
+		          		}
+		        	],
+
+		        	yAxes: 
+		        	[
+		          		{
+		            		scaleLabel: 
+		            		{
+				              display: true,
+				              labelString: 'Frequency',
+				              fontSize: 16
+		            		},
+		            		ticks: {min:0}		            		
+		          		}
+		        	]
+		      	}
+		    },
+			
+		  	data: 
+		  	{
+		    	labels: 
+		    	[
+		    		{% for row in range(numofrows) %}     
+		    			"{{ groupbyFlagInInfo.index[row] }}", 
+		    		{% endfor %}
+		    	],
+
+		    	datasets: 
+		    	[
+		      	{% for col in range(numofcolumns) %}
+		      		{   
+		      			//label for legend
+		      			label: "{{ groupbyFlagInInfo.columns[col] }}",
+		      			backgroundColor: getRandomColor(),
+		      			stack: "Stack {{col}}",    		
+		        		data: 
+		        		[
+		        			{% for row in range(numofrows) %}			        			
+			    				"{{ groupbyFlagInInfo.iloc[row,col] }}",			        			
+			        		{% endfor %}
+		        		]    								
+		      		},
+		      	{% endfor %}	
+		    	]
+		  	}
+		});	 
+	</script>	
+
+{% endblock content %}
+	

@@ -1,0 +1,93 @@
+{% extends "layout.html" %}
+
+{% block details_active %}
+	style="background-color: green; color: white;"
+{% endblock details_active %}
+
+{% block content %}
+    <h2>Ouput Data</h2>
+    <div class="filterFunction">
+	    <h4>Choose an option and enter search key:</h4>
+	    <!--Four options to filter data-->
+	    <div class="options">
+		    <input type="radio" onclick="assignValue(0)" name="useroption" value="2" required>
+		    <label for="source" class="filter-lbl">Source</label>
+		    <input type="radio" onclick="assignValue(1)" name="useroption" value="3" required>
+		    <label for="destination" class="filter-lbl">Destination</label>
+		    <input type="radio" onclick="assignValue(2)" name="useroption" value="4" required>
+		    <label for="protocol" class="filter-lbl">Protocol</label>
+		    <input type="radio" onclick="assignValue(3)" name="useroption" value="6" required>
+		    <label for="info" class="filter-lbl">Info</label>
+		</div>	   
+    	<input type="text" id="userInput" onkeyup="filterFunction()" placeholder="  Enter your search key.." />
+    </div>
+    <!--Table contains filtered data-->
+	<table class="table table-striped" id="dataTable">
+	<thead>
+	  <tr>
+	    <th>Fnum</th>
+	    <th>Time</th>
+	    <th>Source</th>	        
+	    <th>Destination</th>
+	    <th>Protocol</th>
+	    <th>Length</th>
+	    <th>Info</th>
+	  </tr>
+	</thead>
+	<tbody>
+	{% for row in range(noofrows) %}	    	
+	  <tr>
+	    <td>{{ dataframe.Fnum[row] }}</td>
+	    <td>{{ dataframe.Time[row] }}</td>
+	    <td>{{ dataframe.Source[row] }}</td>
+	    <td>{{ dataframe.Destination[row] }}</td>
+	    <td>{{ dataframe.Protocol[row] }}</td>
+	    <td>{{ dataframe.Length[row] }}</td>
+	    <td>{{ dataframe.Info[row] }}</td>
+	  </tr>
+	{% endfor %}	      
+	</tbody>
+	</table>
+
+	<script>
+		var column; //declare a variable to hold the column index
+		//This function will take the option index (0,1,2,3) passed from the user's seclection and return the value
+		//of that selection which is the column index (from 0 to 6) of table data   
+		function assignValue(option){	   
+			column = document.getElementsByName("useroption")[option].value;
+		    return column;
+		}
+		//This function will filter the data in the data table when user enters a search key in the search box
+		//and returns the result for that search.
+		function filterFunction() 
+		{
+		  var input, filter, table, tr, td, i, txtValue;		  
+		  input = document.getElementById("userInput");//Take the user's input by Id		  
+		  filter = input.value.toUpperCase();//Change the value of user's input to Uppercase		  
+		  table = document.getElementById("dataTable"); //get all elements of data table		  
+		  tr = table.getElementsByTagName("tr"); //get elements from table rows
+		  //loop through all elements in the tr
+			for (i = 0; i < tr.length; i++) 
+			{
+				//get the data in a specific row for a specific column
+				td = tr[i].getElementsByTagName("td")[column];
+				if (td) 
+				{
+				// textContent will get all the content includes the hidden content
+				// innerText does not include the hidden content 
+				  txtValue = td.textContent || td.innerText;
+				  //the indexOf() function will return -1 if user's search key not found in the txtValue
+				  if (txtValue.toUpperCase().indexOf(filter) > -1) 
+				  {	//if found the result will be displayed
+				    tr[i].style.display = "";
+				  } 
+				  else 
+				  {
+				  	//If not found display nothing
+				    tr[i].style.display = "none";
+				  }
+				}       
+			}
+		}
+	</script>
+{% endblock content %}
